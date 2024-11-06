@@ -9,12 +9,20 @@
 #include "Blueprint/UserWidget.h"
 #include "PlatformTrigger.h"
 
+#include "MenuSystem/MainMenu.h"
+#include "MenuSystem/MenuWidget.h"
+
 UMultiplayerGameInstance::UMultiplayerGameInstance(const FObjectInitializer& ObjectInitializer)
 {
 	ConstructorHelpers::FClassFinder<UUserWidget> MenuBPClass(TEXT("/Game/MenuSystem/WBP_MainMenu"));
 	if (!ensure(MenuBPClass.Class != nullptr)) return;
 
 	MenuClass = MenuBPClass.Class;
+
+	ConstructorHelpers::FClassFinder<UUserWidget> InGameMenuBPClass(TEXT("/Game/MenuSystem/WBP_InGameMenu"));
+	if (!ensure(InGameMenuBPClass.Class != nullptr)) return;
+
+	InGameMenuClass = InGameMenuBPClass.Class;
 }
 
 void UMultiplayerGameInstance::Init()
@@ -26,26 +34,33 @@ void UMultiplayerGameInstance::LoadMenu()
 {
 	if (!ensure(MenuClass != nullptr)) return;
 	
-	UUserWidget* Menu = CreateWidget<UUserWidget>(this, MenuClass);
+	Menu = CreateWidget<UMainMenu>(this, MenuClass);
 	if (!ensure(Menu != nullptr)) return;
 
-	Menu->AddToViewport();
-	Menu->bIsFocusable = true;
+	Menu->Setup();
 	
-	APlayerController* PlayerController = GetFirstLocalPlayerController();
-	if (!ensure(PlayerController!=nullptr)) return;
+	Menu->SetMenuInterface(this);
+}
+
+void UMultiplayerGameInstance::InGameLoadMenu()
+{
+	if (!ensure(InGameMenuClass != nullptr)) return;
 	
-	FInputModeUIOnly InputModeData;
-	InputModeData.SetWidgetToFocus(Menu->TakeWidget());
-	InputModeData.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	UMenuWidget* Menu = CreateWidget<UMenuWidget>(this, InGameMenuClass);
+	if (!ensure(Menu != nullptr)) return;
 
-	PlayerController->SetInputMode(InputModeData);
-	PlayerController->bShowMouseCursor = true;
-
+	Menu->Setup();
+	
+	Menu->SetMenuInterface(this);
 }
 
 void UMultiplayerGameInstance::Host()
 {
+	if (Menu!=nullptr)
+	{
+		Menu->Teardown();
+	}
+	
 	UEngine* Engine = GetEngine();
 	if (!ensure(Engine!=nullptr)) return;
 
@@ -59,6 +74,11 @@ void UMultiplayerGameInstance::Host()
 
 void UMultiplayerGameInstance::Join(const FString& Address)
 {
+	if (Menu!=nullptr)
+	{
+		Menu->Teardown();
+	}
+	
 	UEngine* Engine = GetEngine();
 	if (!ensure(Engine!=nullptr)) return;
 
