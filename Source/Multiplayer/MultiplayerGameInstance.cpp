@@ -88,3 +88,10 @@ void UMultiplayerGameInstance::Join(const FString& Address)
 	if (!ensure(PlayerController!=nullptr)) return;
 	PlayerController->ClientTravel(Address,TRAVEL_Absolute);
 }
+
+void UMultiplayerGameInstance::LoadMainMenu()
+{
+	APlayerController* PlayerController = GetFirstLocalPlayerController();
+	if (!ensure(PlayerController!=nullptr)) return;
+	PlayerController->ClientTravel("/Game/MenuSystem/MainMenu",TRAVEL_Absolute);
+}
