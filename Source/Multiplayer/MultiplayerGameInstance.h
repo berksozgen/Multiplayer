@@ -23,7 +23,7 @@ public:
 	virtual void Init();
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
-	void LoadMenu();
+	void LoadMenuWidget();
 
 	UFUNCTION(BlueprintCallable, Category = "Menu")
 	void InGameLoadMenu();
