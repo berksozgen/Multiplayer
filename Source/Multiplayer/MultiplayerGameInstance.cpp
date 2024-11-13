@@ -7,12 +7,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Blueprint/UserWidget.h"
-#include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
 
-#include "PlatformTrigger.h"
 
 #include "MenuSystem/MainMenu.h"
 #include "MenuSystem/MenuWidget.h"
+
+const static FName SESSION_NAME = TEXT("My Session Game");
 
 UMultiplayerGameInstance::UMultiplayerGameInstance(const FObjectInitializer& ObjectInitializer)
 {
@@ -33,10 +34,13 @@ void UMultiplayerGameInstance::Init()
 	if (Subsystem != nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Found subsystem %s"), *Subsystem->GetSubsystemName().ToString());
-		IOnlineSessionPtr SessionInterface = Subsystem->GetSessionInterface();
+		SessionInterface = Subsystem->GetSessionInterface();
 		if (SessionInterface.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Found SessionInterface"));
+			SessionInterface->OnCreateSessionCompleteDelegates.AddUObject(this, &UMultiplayerGameInstance::OnCreateSessionComplete);
+			SessionInterface->OnDestroySessionCompleteDelegates.AddUObject(this, &UMultiplayerGameInstance::OnDestroySessionComplete);
+			SessionInterface->OnFindSessionsCompleteDelegates.AddUObject(this, &UMultiplayerGameInstance::OnFindSessionsComplete);
+			SessionInterface->OnJoinSessionCompleteDelegates.AddUObject(this, &UMultiplayerGameInstance::OnJoinSessionComplete);
 		}
 	}
 	else
@@ -72,6 +76,77 @@ void UMultiplayerGameInstance::InGameLoadMenu()
 
 void UMultiplayerGameInstance::Host()
 {
+	if (SessionInterface.IsValid())
+	{
+		auto ExistingSession = SessionInterface->GetNamedSession(SESSION_NAME);
+		if (ExistingSession != nullptr)
+		{
+			SessionInterface->DestroySession(SESSION_NAME);
+		}
+		else
+		{
+			CreateSession();
+		}
+	}
+}
+
+void UMultiplayerGameInstance::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	if (bWasSuccessful)
+	{
+		CreateSession();
+	}
+}
+
+void UMultiplayerGameInstance::RefreshServerList()
+{
+	SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	if (SessionSearch.IsValid())
+	{
+		SessionSearch->bIsLanQuery = true;
+		UE_LOG(LogTemp, Warning, TEXT("Starting Find Session"));
+		SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
+	}
+}
+
+void UMultiplayerGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
+{
+	if (bWasSuccessful && SessionSearch.IsValid() && Menu !=  nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Finished Find Session"));
+
+		TArray<FString> ServerNames;
+
+		for (const FOnlineSessionSearchResult& SearchResult : SessionSearch->SearchResults)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Found Session Named: %s"), *SearchResult.GetSessionIdStr());
+			ServerNames.Add(SearchResult.GetSessionIdStr());
+		}
+
+		Menu->SetServerList(ServerNames);
+	}
+}
+
+void UMultiplayerGameInstance::CreateSession()
+{
+	if (SessionInterface.IsValid())
+	{
+		FOnlineSessionSettings SessionSettings;
+		SessionSettings.bIsLANMatch = true;
+		SessionSettings.NumPublicConnections = 10;
+		SessionSettings.bShouldAdvertise = true;
+		
+		SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
+	}
+}
+
+void UMultiplayerGameInstance::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
+{
+	if(!bWasSuccessful)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Could not create session!"));
+		return;
+	}
 	if (Menu!=nullptr)
 	{
 		Menu->Teardown();
@@ -88,13 +163,30 @@ void UMultiplayerGameInstance::Host()
 	World->ServerTravel("/Game/ThirdPerson/Maps/ThirdPersonMap?listen");
 }
 
-void UMultiplayerGameInstance::Join(const FString& Address)
+void UMultiplayerGameInstance::Join(uint32 Index)
 {
+	if(!SessionInterface.IsValid()) return;
+	if(!SessionSearch.IsValid()) return;
+	
 	if (Menu!=nullptr)
 	{
 		Menu->Teardown();
 	}
-	
+
+	SessionInterface->JoinSession(0,SESSION_NAME, SessionSearch->SearchResults[Index]);
+}
+
+void UMultiplayerGameInstance::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+{
+	if (!SessionInterface.IsValid()) return;
+
+	FString Address;
+	if(!SessionInterface->GetResolvedConnectString(SessionName, Address))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Could not get connect string"));
+		return;
+	}
+
 	UEngine* Engine = GetEngine();
 	if (!ensure(Engine!=nullptr)) return;
 

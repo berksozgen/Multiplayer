@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
+#include "OnlineSubsystem.h"
+#include "Interfaces/OnlineSessionInterface.h"
 
 #include "MenuSystem/MenuInterface.h"
 
@@ -32,14 +34,25 @@ public:
 	void Host() override;
 	
 	UFUNCTION(Exec)
-	void Join(const FString& Address) override;
+	void Join(uint32 Index) override;
 
 	virtual void LoadMainMenu() override;
+
+	void RefreshServerList() override;
 private:
 	TSubclassOf<class UUserWidget> MenuClass; //class yazmak forward decklarition oluyor galiba, include u burada yapmadik diye belirttik, normalde gerek yok
 	TSubclassOf<class UUserWidget> InGameMenuClass;
 	
 	class UMainMenu* Menu;
 
+	IOnlineSessionPtr SessionInterface;
+	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
+
+	void OnCreateSessionComplete(FName SessionName, bool bWasSuccessful);	
+	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
+	void OnFindSessionsComplete(bool bWasSuccessful);
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
+
+	void CreateSession();
 	
 };
