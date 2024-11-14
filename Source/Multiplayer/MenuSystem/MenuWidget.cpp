@@ -37,9 +37,10 @@ void UMenuWidget::Teardown()
 	PlayerController->bShowMouseCursor = false;
 }
 
-void UMenuWidget::SetMenuInterface(IMenuInterface* MenuInterface)
+void UMenuWidget::SetMenuInterface(IMenuInterface* _MenuInterface) //void UMenuWidget::SetMenuInterface(IMenuInterface* MenuInterface) 
 {
-	UMenuWidget::MenuInterface = MenuInterface;
-	//this->MenuInterface = MenuInterface; idi windowsta hata veriyor
+	//UMenuWidget::MenuInterface = MenuInterface;
+	//this->MenuInterface = MenuInterface; //idi windowsta hata veriyor
+	this->MenuInterface = _MenuInterface;
 }
 

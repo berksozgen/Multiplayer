@@ -7,8 +7,6 @@
 
 #include "MainMenu.h"
 
-#include "IPropertyTable.h"
-
 
 void UServerRow::Setup(class UMainMenu* InParent, uint32 InIndex)
 {

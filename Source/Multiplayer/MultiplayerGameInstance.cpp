@@ -35,6 +35,7 @@ void UMultiplayerGameInstance::Init()
 	if (Subsystem != nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Found subsystem %s"), *Subsystem->GetSubsystemName().ToString());
+
 		SessionInterface = Subsystem->GetSessionInterface();
 		if (SessionInterface.IsValid())
 		{
@@ -119,15 +120,19 @@ void UMultiplayerGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Finished Find Session"));
 
-		TArray<FString> ServerNames;
-
+		TArray<FServerData> ServerDatas;
 		for (const FOnlineSessionSearchResult& SearchResult : SessionSearch->SearchResults)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Found Session Named: %s"), *SearchResult.GetSessionIdStr());
-			ServerNames.Add(SearchResult.GetSessionIdStr());
+			FServerData ServerData;
+			ServerData.Name = SearchResult.GetSessionIdStr();
+			ServerData.MaxPlayers = SearchResult.Session.SessionSettings.NumPublicConnections;
+			ServerData.CurrentPlayers = ServerData.MaxPlayers - SearchResult.Session.NumOpenPublicConnections;
+			ServerData.HostUserName = SearchResult.Session.OwningUserName;
+			ServerDatas.Add(ServerData);
 		}
 
-		Menu->SetServerList(ServerNames);
+		Menu->SetServerList(ServerDatas);
 	}
 }
 //commit atmak  icin
@@ -136,7 +141,8 @@ void UMultiplayerGameInstance::CreateSession()
 	if (SessionInterface.IsValid())
 	{
 		FOnlineSessionSettings SessionSettings;
-		SessionSettings.bIsLANMatch = false;
+		
+		SessionSettings.bIsLANMatch = (IOnlineSubsystem::Get()->GetSubsystemName() == "NULL");
 		SessionSettings.NumPublicConnections = 10;
 		SessionSettings.bShouldAdvertise = true;
 		SessionSettings.bUsesPresence = true;
