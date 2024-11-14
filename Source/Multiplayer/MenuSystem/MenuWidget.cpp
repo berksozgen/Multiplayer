@@ -39,6 +39,7 @@ void UMenuWidget::Teardown()
 
 void UMenuWidget::SetMenuInterface(IMenuInterface* MenuInterface)
 {
-	this->MenuInterface = MenuInterface;
+	UMenuWidget::MenuInterface = MenuInterface;
+	//this->MenuInterface = MenuInterface; idi windowsta hata veriyor
 }
 

@@ -65,14 +65,15 @@ void UMultiplayerGameInstance::LoadMenuWidget()
 
 void UMultiplayerGameInstance::InGameLoadMenu()
 {
+	//MenuWidget was -> Menu, rename it cause by fucking msvc
 	if (!ensure(InGameMenuClass != nullptr)) return;
 	
-	UMenuWidget* Menu = CreateWidget<UMenuWidget>(this, InGameMenuClass);
-	if (!ensure(Menu != nullptr)) return;
+	UMenuWidget* MenuWidget = CreateWidget<UMenuWidget>(this, InGameMenuClass);
+	if (!ensure(MenuWidget != nullptr)) return;
 
-	Menu->Setup();
+	MenuWidget->Setup();
 	
-	Menu->SetMenuInterface(this);
+	MenuWidget->SetMenuInterface(this);
 }
 
 void UMultiplayerGameInstance::Host()
