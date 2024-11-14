@@ -129,7 +129,7 @@ void UMultiplayerGameInstance::OnFindSessionsComplete(bool bWasSuccessful)
 		Menu->SetServerList(ServerNames);
 	}
 }
-
+//commit atmak  icin
 void UMultiplayerGameInstance::CreateSession()
 {
 	if (SessionInterface.IsValid())
