@@ -12,6 +12,7 @@
 
 #include "MenuSystem/MainMenu.h"
 #include "MenuSystem/MenuWidget.h"
+#include "Online/OnlineSessionNames.h"
 
 const static FName SESSION_NAME = TEXT("My Session Game");
 
@@ -103,7 +104,9 @@ void UMultiplayerGameInstance::RefreshServerList()
 	SessionSearch = MakeShareable(new FOnlineSessionSearch());
 	if (SessionSearch.IsValid())
 	{
-		SessionSearch->bIsLanQuery = true;
+		//SessionSearch->bIsLanQuery = true;
+		SessionSearch->MaxSearchResults = 100;
+		SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
 		UE_LOG(LogTemp, Warning, TEXT("Starting Find Session"));
 		SessionInterface->FindSessions(0, SessionSearch.ToSharedRef());
 	}
@@ -132,9 +135,11 @@ void UMultiplayerGameInstance::CreateSession()
 	if (SessionInterface.IsValid())
 	{
 		FOnlineSessionSettings SessionSettings;
-		SessionSettings.bIsLANMatch = true;
+		SessionSettings.bIsLANMatch = false;
 		SessionSettings.NumPublicConnections = 10;
 		SessionSettings.bShouldAdvertise = true;
+		SessionSettings.bUsesPresence = true;
+		SessionSettings.bUseLobbiesIfAvailable = true;
 		
 		SessionInterface->CreateSession(0, SESSION_NAME, SessionSettings);
 	}
